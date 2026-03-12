@@ -429,7 +429,13 @@
     </div>
     <div class="tab-buttons" style="margin: 0; background: rgba(0,0,0,0.3); padding: 6px; border-radius: var(--radius-md); display: flex; gap: 4px; width: 380px;">
       <button class="tab-btn active" id="tab-btn-process" onclick="switchTab('process')">⚙️ 공정 시뮬레이터</button>
-      <button class="tab-btn" id="tab-btn-finance" onclick="switchTab('finance')">📊 재무제표<br>(IS & BS)</button>
+      <button class="tab-btn" id="tab-btn-finance" onclick="switchTab('finance')" style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+        <span style="font-size: 1.2em;">📊</span>
+        <div style="display: flex; flex-direction: column; text-align: left; line-height: 1.2;">
+          <span style="font-weight: 700;">재무제표</span>
+          <span style="font-size: 0.75em; color: var(--text-muted); font-weight: 500;">(IS & BS)</span>
+        </div>
+      </button>
     </div>
   </header>
 
