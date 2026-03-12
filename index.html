@@ -627,6 +627,10 @@
         <div class="glass-card">
           <div class="card-title" style="display: flex; justify-content: space-between; width: 100%;">
             <span>📄 손익계산서 (Income Statement) - 월간</span>
+            <div style="display: flex; gap: 8px;">
+              <button class="btn-util" onclick="copyTableToClipboardIS()">📋 복사</button>
+              <button class="btn-util" onclick="exportTableToCSVIS()">📥 CSV 다운</button>
+            </div>
           </div>
           <table class="pl-table">
             <tbody id="is_table_body"></tbody>
@@ -635,6 +639,10 @@
         <div class="glass-card">
           <div class="card-title" style="display: flex; justify-content: space-between; width: 100%;">
             <span>📄 재무상태표 (Balance Sheet) - 1개월 차 기말</span>
+            <div style="display: flex; gap: 8px;">
+              <button class="btn-util" onclick="copyTableToClipboardBS()">📋 복사</button>
+              <button class="btn-util" onclick="exportTableToCSVBS()">📥 CSV 다운</button>
+            </div>
           </div>
           <table class="pl-table">
             <tbody id="bs_table_body"></tbody>
@@ -1016,6 +1024,114 @@
       link.click();
       document.body.removeChild(link);
       showToast("CSV 파일이 다운로드 되었습니다.");
+    }
+
+    // IS Export Scripts
+    function getISTableDataAsCSV() {
+      const is = simData.fin.is;
+      let csv = "항목,금액(KRW)\n";
+      csv += `"매출액 (Revenue)",${is.revenue}\n`;
+      csv += `"매출원가 (COGS)",-${is.cogs}\n`;
+      csv += `"매출총이익 (Gross Profit)",${is.grossProfit}\n`;
+      csv += `"감가상각비 (Depreciation)",-${is.depreciation}\n`;
+      csv += `"기타 판관비 (SG&A)",-${is.sga}\n`;
+      csv += `"영업이익 (Operating Profit)",${is.operatingProfit}\n`;
+      csv += `"이자비용 (Interest Expense)",-${is.interestExp}\n`;
+      csv += `"세전이익 (EBT)",${is.ebt}\n`;
+      csv += `"법인세 (Taxes)",-${is.tax}\n`;
+      csv += `"당기순이익 (Net Income)",${is.netIncome}\n`;
+      return "\uFEFF" + csv;
+    }
+
+    function getISTableDataAsTSV() {
+      const is = simData.fin.is;
+      let tsv = "항목\t금액(KRW)\n";
+      tsv += `매출액 (Revenue)\t${is.revenue}\n`;
+      tsv += `매출원가 (COGS)\t-${is.cogs}\n`;
+      tsv += `매출총이익 (Gross Profit)\t${is.grossProfit}\n`;
+      tsv += `감가상각비 (Depreciation)\t-${is.depreciation}\n`;
+      tsv += `기타 판관비 (SG&A)\t-${is.sga}\n`;
+      tsv += `영업이익 (Operating Profit)\t${is.operatingProfit}\n`;
+      tsv += `이자비용 (Interest Expense)\t-${is.interestExp}\n`;
+      tsv += `세전이익 (EBT)\t${is.ebt}\n`;
+      tsv += `법인세 (Taxes)\t-${is.tax}\n`;
+      tsv += `당기순이익 (Net Income)\t${is.netIncome}\n`;
+      return tsv;
+    }
+
+    async function copyTableToClipboardIS() {
+      try {
+        await navigator.clipboard.writeText(getISTableDataAsTSV());
+        showToast("손익계산서 데이터가 클립보드에 복사되었습니다.");
+      } catch (err) {
+        showToast("복사에 실패했습니다.");
+      }
+    }
+
+    function exportTableToCSVIS() {
+      const csvStr = getISTableDataAsCSV();
+      const blob = new Blob([csvStr], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", "은공정_손익계산서(IS).csv");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showToast("손익계산서 CSV 파일이 다운로드 되었습니다.");
+    }
+
+    // BS Export Scripts
+    function getBSTableDataAsCSV() {
+      const bs = simData.fin.bs;
+      let csv = "자산 (Assets),금액(KRW)\n";
+      csv += `"현금성 자산 (Cash)",${bs.cash}\n`;
+      csv += `"운전자본 (Working Capital - 은 재고)",${bs.workingCapital}\n`;
+      csv += `"유형자산 (Tangible Assets - Net)",${bs.tangibleAssets}\n`;
+      csv += `"총 자산 (Total Assets)",${bs.totalAssets}\n\n`;
+      csv += "부채 및 자본 (Liabilities & Equity),금액(KRW)\n";
+      csv += `"차입금 (Debt)",${bs.debt}\n`;
+      csv += `"자본금 (Initial Capital)",${bs.capital}\n`;
+      csv += `"이익잉여금 (Retained Earnings)",${bs.retainedEarnings}\n`;
+      csv += `"총 부채 및 자본 (Total L&E)",${bs.totalLiabilitiesEquity}\n`;
+      return "\uFEFF" + csv;
+    }
+
+    function getBSTableDataAsTSV() {
+      const bs = simData.fin.bs;
+      let tsv = "자산 (Assets)\t금액(KRW)\n";
+      tsv += `현금성 자산 (Cash)\t${bs.cash}\n`;
+      tsv += `운전자본 (Working Capital - 은 재고)\t${bs.workingCapital}\n`;
+      tsv += `유형자산 (Tangible Assets - Net)\t${bs.tangibleAssets}\n`;
+      tsv += `총 자산 (Total Assets)\t${bs.totalAssets}\n\n`;
+      tsv += "부채 및 자본 (Liabilities & Equity)\t금액(KRW)\n";
+      tsv += `차입금 (Debt)\t${bs.debt}\n`;
+      tsv += `자본금 (Initial Capital)\t${bs.capital}\n`;
+      tsv += `이익잉여금 (Retained Earnings)\t${bs.retainedEarnings}\n`;
+      tsv += `총 부채 및 자본 (Total L&E)\t${bs.totalLiabilitiesEquity}\n`;
+      return tsv;
+    }
+
+    async function copyTableToClipboardBS() {
+      try {
+        await navigator.clipboard.writeText(getBSTableDataAsTSV());
+        showToast("재무상태표 데이터가 클립보드에 복사되었습니다.");
+      } catch (err) {
+        showToast("복사에 실패했습니다.");
+      }
+    }
+
+    function exportTableToCSVBS() {
+      const csvStr = getBSTableDataAsCSV();
+      const blob = new Blob([csvStr], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", "은공정_재무상태표(BS).csv");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showToast("재무상태표 CSV 파일이 다운로드 되었습니다.");
     }
 
     function renderSensitivityBox() {
