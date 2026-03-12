@@ -423,11 +423,17 @@
 
   <!-- HEADER -->
   <header class="header">
-    <div class="header-title">✨ 은(Ag) 분말 공정 및 재무 시뮬레이터</div>
-    <div style="font-size: 0.85rem; color: var(--text-muted);">v1.0 Advanced Process Simulator</div>
+    <div>
+      <div class="header-title">✨ 은(Ag) 분말 공정 및 재무 시뮬레이터</div>
+      <div style="font-size: 0.85rem; color: var(--text-muted);">v1.0 Advanced Process Simulator</div>
+    </div>
+    <div class="tab-buttons" style="margin: 0; background: rgba(0,0,0,0.3); padding: 6px; border-radius: var(--radius-md); display: flex; gap: 4px; width: 380px;">
+      <button class="tab-btn active" id="tab-btn-process" onclick="switchTab('process')">⚙️ 공정 시뮬레이터</button>
+      <button class="tab-btn" id="tab-btn-finance" onclick="switchTab('finance')">📊 재무제표 (P&L & BS)</button>
+    </div>
   </header>
 
-  <div class="main-container">
+  <div id="tab-process" class="main-container" style="display: grid;">
     
     <!-- LEFT PANEL: Inputs -->
     <aside class="sidebar">
@@ -481,9 +487,15 @@
         </div>
 
         <div class="input-group" style="margin-top:10px;">
-          <div class="input-label"><span>재공정 유틸리티 비용율 (%)</span></div>
-          <input type="number" class="input-control" id="reprocessing_cost_rate" value="5" step="1" max="20">
-          <div style="font-size:0.7rem; color:var(--text-muted); margin-top:4px;">* 질산/전기 등 약품비 (재투입량 기준)</div>
+          <div class="input-label">
+            <span>공정 유틸리티 비용</span>
+            <select id="utility_cost_type" style="background:transparent; color:var(--accent-primary); border:none; outline:none; font-size:0.8rem; cursor:pointer;">
+              <option value="ratio">원재료비 비율(%)</option>
+              <option value="amount">직접 입력(KRW/kg)</option>
+            </select>
+          </div>
+          <input type="number" class="input-control" id="utility_cost_value" value="5" step="1">
+          <div style="font-size:0.7rem; color:var(--text-muted); margin-top:4px;">* 신규 및 재투입량 전량에 적용 (질산, 전기 등)</div>
         </div>
         <div class="input-group" style="margin-top:10px;">
           <div class="input-label"><span>월 판매 목표량 (kg)</span></div>
@@ -564,7 +576,66 @@
         </div>
       </div>
     </main>
+  </div>
 
+  <!-- FINANCIAL STATEMENTS TAB -->
+  <div id="tab-finance" class="main-container" style="display: none; grid-template-columns: 1fr;">
+    <main class="content-area">
+      <!-- Fin Inputs -->
+      <div class="glass-card">
+        <div class="card-title">⚙️ 재무제표 기본 가정 입력</div>
+        <div class="finance-row">
+          <div class="input-group">
+            <div class="input-label"><span>초기 자본금(KRW)</span></div>
+            <input type="number" class="input-control fin-input" id="fin_initial_capital" value="1000000000" step="10000000">
+          </div>
+          <div class="input-group">
+            <div class="input-label"><span>차입금 (Debt, KRW)</span></div>
+            <input type="number" class="input-control fin-input" id="fin_debt" value="500000000" step="10000000">
+          </div>
+          <div class="input-group">
+            <div class="input-label"><span>연 이자율 (%)</span></div>
+            <input type="number" class="input-control fin-input" id="fin_interest_rate" value="5.0" step="0.1">
+          </div>
+          <div class="input-group">
+            <div class="input-label"><span>설비 투자(CAPEX, KRW)</span></div>
+            <input type="number" class="input-control fin-input" id="fin_capex" value="800000000" step="10000000">
+          </div>
+          <div class="input-group">
+            <div class="input-label"><span>감가상각 내용연수 (년)</span></div>
+            <input type="number" class="input-control fin-input" id="fin_useful_life" value="5" step="1">
+          </div>
+          <div class="input-group">
+            <div class="input-label"><span>기타 판관비(SG&A, 월, KRW)</span></div>
+            <input type="number" class="input-control fin-input" id="fin_sga" value="20000000" step="1000000">
+          </div>
+          <div class="input-group">
+            <div class="input-label"><span>법인세율 (%)</span></div>
+            <input type="number" class="input-control fin-input" id="fin_tax_rate" value="20.0" step="1">
+          </div>
+        </div>
+      </div>
+
+      <!-- Fin Outputs -->
+      <div class="finance-row">
+        <div class="glass-card">
+          <div class="card-title" style="display: flex; justify-content: space-between; width: 100%;">
+            <span>📄 손익계산서 (Income Statement) - 월간</span>
+          </div>
+          <table class="pl-table">
+            <tbody id="is_table_body"></tbody>
+          </table>
+        </div>
+        <div class="glass-card">
+          <div class="card-title" style="display: flex; justify-content: space-between; width: 100%;">
+            <span>📄 재무상태표 (Balance Sheet) - 1개월 차 기말</span>
+          </div>
+          <table class="pl-table">
+            <tbody id="bs_table_body"></tbody>
+          </table>
+        </div>
+      </div>
+    </main>
   </div>
 
   <script>
@@ -573,6 +644,16 @@
     const PHASE2_CAPACITY = 1000; // kg
 
     let simData = {};
+
+    function switchTab(tab) {
+      document.getElementById('tab-btn-process').classList.toggle('active', tab === 'process');
+      document.getElementById('tab-btn-finance').classList.toggle('active', tab === 'finance');
+      document.getElementById('tab-process').style.display = tab === 'process' ? 'grid' : 'none';
+      document.getElementById('tab-finance').style.display = tab === 'finance' ? 'grid' : 'none';
+      if (tab === 'finance') {
+        runSimulation(); // Ensure fin stats are updated
+      }
+    }
 
     // ----------------------------------------------------
     // UI Formatters & Binder
@@ -599,7 +680,7 @@
       bindSlider('main_product_yield', 'val_main_yield', '%');
       bindSlider('solution_loss_rate', 'val_loss_rate', '%');
 
-      const numberInputs = ['raw_material_price', 'product_selling_price', 'byproduct_price', 'reprocessing_cost_rate', 'target_sales_qty'];
+      const numberInputs = ['raw_material_price', 'product_selling_price', 'byproduct_price', 'utility_cost_value', 'target_sales_qty'];
       numberInputs.forEach(id => {
         const el = document.getElementById(id);
         if(el) {
@@ -608,6 +689,13 @@
              runSimulation();
           });
         }
+      });
+
+      document.getElementById('utility_cost_type').addEventListener('change', runSimulation);
+
+      const finInputs = document.querySelectorAll('.fin-input');
+      finInputs.forEach(el => {
+        el.addEventListener('input', runSimulation);
       });
 
       // Initial run
@@ -646,8 +734,18 @@
         priceRaw: parseFloat(document.getElementById('raw_material_price').value),
         priceProduct: parseFloat(document.getElementById('product_selling_price').value),
         priceByprod: parseFloat(document.getElementById('byproduct_price').value),
-        costReRate: parseFloat(document.getElementById('reprocessing_cost_rate').value) / 100,
-        targetSales: parseFloat(document.getElementById('target_sales_qty').value)
+        utilityCostType: document.getElementById('utility_cost_type').value,
+        utilityCostValue: parseFloat(document.getElementById('utility_cost_value').value),
+        targetSales: parseFloat(document.getElementById('target_sales_qty').value),
+        
+        // Financial Inputs
+        finInitialCapital: parseFloat(document.getElementById('fin_initial_capital').value),
+        finDebt: parseFloat(document.getElementById('fin_debt').value),
+        finInterestRate: parseFloat(document.getElementById('fin_interest_rate').value) / 100,
+        finCapex: parseFloat(document.getElementById('fin_capex').value),
+        finUsefulLife: parseFloat(document.getElementById('fin_useful_life').value),
+        finSga: parseFloat(document.getElementById('fin_sga').value),
+        finTaxRate: parseFloat(document.getElementById('fin_tax_rate').value) / 100
       };
     }
 
@@ -679,8 +777,13 @@
       // 3. Costs (OPEX)
       const costRaw = inputQty * v.priceRaw; // 전체 월 원료 투입 금액
       
-      // Reprocessing cost for the unformed powder
-      const costReprocess = massRe * v.priceRaw * v.costReRate;
+      // Process Utility cost (applied to both new input and re-input)
+      let costUtility = 0;
+      if (v.utilityCostType === 'ratio') {
+        costUtility = (inputQty + massRe) * v.priceRaw * (v.utilityCostValue / 100);
+      } else {
+        costUtility = (inputQty + massRe) * v.utilityCostValue;
+      }
 
       // External Purchase Cost (부족분 매입)
       // "외부 재고를 매입하게 한다" 단가는 판매가(프리미엄 포함)의 80%
@@ -691,7 +794,7 @@
       // Scale dynamic OPEX linearly based on 50m / 50kg ratio for demo
       const fixedOpex = Math.max(50000000, inputQty * 1000000);
 
-      const totalCost = costRaw + costReprocess + costExternal + fixedOpex;
+      const totalCost = costRaw + costUtility + costExternal + fixedOpex;
       const netProfit = totalRev - totalCost;
 
       // The massRe represents the Working Capital Value locked in the system
@@ -701,7 +804,7 @@
         massMain, massRe, massLoss, volSolution,
         actualSalesQty, externalPurchaseQty,
         revMain, revByprod, totalRev,
-        costRaw, costReprocess, costExternal, fixedOpex, totalCost, netProfit,
+        costRaw, costUtility, costExternal, fixedOpex, totalCost, netProfit,
         workingCapitalAsset
       };
     }
@@ -719,6 +822,10 @@
       drawSankey(vars);
       renderPLTable();
       renderSensitivityBox();
+      
+      // Finance logic
+      calculateFinancialStatements();
+      renderFinancialStatements();
     }
 
     function drawSankey(v) {
@@ -822,8 +929,8 @@
         </tr>
         ${externalHtml}
         <tr>
-          <td>재순환 공정 유틸리티비</td>
-          <td class="val-negative">- ${formatKRW(d.costReprocess)}</td>
+          <td>공정 유틸리티비 <span style="font-size:0.75rem; color:#9ca3af;">(신규+재투입 전체)</span></td>
+          <td class="val-negative">- ${formatKRW(d.costUtility)}</td>
         </tr>
         <tr>
           <td>고정비 <span style="font-size:0.75rem; color:#9ca3af;">(임대료, 인건비 등 추정)</span></td>
@@ -857,7 +964,7 @@
       if(d.externalPurchaseQty > 0) {
         csv += `"외부 부족분 초과 매입비 (${d.externalPurchaseQty.toFixed(1)}kg)",-${d.costExternal}\n`;
       }
-      csv += `"재순환 공정 유틸리티비",-${d.costReprocess}\n`;
+      csv += `"공정 유틸리티비",-${d.costUtility}\n`;
       csv += `"고정비",-${d.fixedOpex}\n`;
       csv += `"영업 이익",${d.netProfit}\n`;
       csv += `"공정 순환 자산 (Asset)",${d.workingCapitalAsset}\n`;
@@ -876,7 +983,7 @@
       if(d.externalPurchaseQty > 0) {
         tsv += `외부 부족분 초과 매입비 (${d.externalPurchaseQty.toFixed(1)}kg)\t-${d.costExternal}\n`;
       }
-      tsv += `재순환 공정 유틸리티비\t-${d.costReprocess}\n`;
+      tsv += `공정 유틸리티비\t-${d.costUtility}\n`;
       tsv += `고정비\t-${d.fixedOpex}\n`;
       tsv += `영업 이익\t${d.netProfit}\n`;
       tsv += `공정 순환 자산 (Asset)\t${d.workingCapitalAsset}\n`;
@@ -931,6 +1038,86 @@
         월 영업이익은 원자재가 상승을 헤지(Hedge)하고 <span class="sens-highlight">추가 상승</span>할 것으로 전망됩니다.
       `;
       document.getElementById('sensitivityBox').innerHTML = html;
+    }
+
+    function calculateFinancialStatements() {
+      const v = simData.vars;
+      const d = simData.current;
+      
+      const is = {
+        revenue: d.totalRev,
+        cogs: d.costRaw + d.costUtility + d.costExternal + d.fixedOpex, // Using same OPEX
+        grossProfit: 0,
+        sga: v.finSga,
+        depreciation: v.finCapex / (v.finUsefulLife * 12),
+        interestExp: v.finDebt * (v.finInterestRate / 12),
+        operatingProfit: 0,
+        ebt: 0, // Earnings before tax
+        tax: 0,
+        netIncome: 0
+      };
+      is.grossProfit = is.revenue - is.cogs;
+      is.operatingProfit = is.grossProfit - is.sga - is.depreciation;
+      is.ebt = is.operatingProfit - is.interestExp;
+      is.tax = is.ebt > 0 ? is.ebt * v.finTaxRate : 0;
+      is.netIncome = is.ebt - is.tax;
+      
+      const bs = {
+        cash: v.finInitialCapital + v.finDebt - v.finCapex + is.netIncome + is.depreciation - d.workingCapitalAsset,
+        workingCapital: d.workingCapitalAsset,
+        tangibleAssets: v.finCapex - is.depreciation,
+        totalAssets: 0,
+        debt: v.finDebt,
+        capital: v.finInitialCapital,
+        retainedEarnings: is.netIncome,
+        totalLiabilitiesEquity: 0
+      };
+      bs.totalAssets = bs.cash + bs.workingCapital + bs.tangibleAssets;
+      bs.totalLiabilitiesEquity = bs.debt + bs.capital + bs.retainedEarnings;
+
+      simData.fin = { is, bs };
+    }
+
+    function renderFinancialStatements() {
+      const is = simData.fin.is;
+      const bs = simData.fin.bs;
+
+      // Income statement rendering
+      const isHtml = `
+        <tr><td>매출액 (Revenue)</td><td class="val-positive">${formatKRW(is.revenue)}</td></tr>
+        <tr><td>매출원가 (COGS)</td><td class="val-negative">- ${formatKRW(is.cogs)}</td></tr>
+        <tr style="border-top:1px solid rgba(255,255,255,0.2);">
+          <td style="font-weight:600;">매출총이익 (Gross Profit)</td><td style="font-weight:600; color:white;">${formatKRW(is.grossProfit)}</td>
+        </tr>
+        <tr><td>감가상각비 (Depreciation)</td><td class="val-negative">- ${formatKRW(is.depreciation)}</td></tr>
+        <tr><td>기타 판관비 (SG&A)</td><td class="val-negative">- ${formatKRW(is.sga)}</td></tr>
+        <tr style="border-top:1px solid rgba(255,255,255,0.2);">
+          <td style="font-weight:600;">영업이익 (Operating Profit)</td><td style="font-weight:600; color:white;">${formatKRW(is.operatingProfit)}</td>
+        </tr>
+        <tr><td>이자비용 (Interest Expense)</td><td class="val-negative">- ${formatKRW(is.interestExp)}</td></tr>
+        <tr style="border-top:1px solid rgba(255,255,255,0.2);">
+          <td style="font-weight:600;">세전이익 (EBT)</td><td style="font-weight:600; color:white;">${formatKRW(is.ebt)}</td>
+        </tr>
+        <tr><td>법인세 (Taxes)</td><td class="val-negative">- ${formatKRW(is.tax)}</td></tr>
+        <tr class="total-row"><td>당기순이익 (Net Income)</td><td>${formatKRW(is.netIncome)}</td></tr>
+      `;
+      document.getElementById('is_table_body').innerHTML = isHtml;
+
+      // Balance sheet rendering
+      const bsHtml = `
+        <tr style="background: rgba(255,255,255,0.05);"><td colspan="2" style="font-weight:600; text-align:center;">자산 (Assets)</td></tr>
+        <tr><td>현금성 자산 (Cash)</td><td class="val-asset">${formatKRW(bs.cash)}</td></tr>
+        <tr><td>운전자본 (Working Capital - 은 재고)</td><td class="val-asset">${formatKRW(bs.workingCapital)}</td></tr>
+        <tr><td>유형자산 (Tangible Assets - Net)</td><td class="val-asset">${formatKRW(bs.tangibleAssets)}</td></tr>
+        <tr class="total-row"><td>총 자산 (Total Assets)</td><td>${formatKRW(bs.totalAssets)}</td></tr>
+        
+        <tr style="background: rgba(255,255,255,0.05);"><td colspan="2" style="font-weight:600; text-align:center;">부채 및 자본 (Liabilities & Equity)</td></tr>
+        <tr><td>차입금 (Debt)</td><td class="val-negative">${formatKRW(bs.debt)}</td></tr>
+        <tr><td>자본금 (Initial Capital)</td><td style="color:white;">${formatKRW(bs.capital)}</td></tr>
+        <tr><td>이익잉여금 (Retained Earnings)</td><td class="val-positive">${formatKRW(bs.retainedEarnings)}</td></tr>
+        <tr class="total-row"><td>총 부채 및 자본 (Total L&E)</td><td>${formatKRW(bs.totalLiabilitiesEquity)}</td></tr>
+      `;
+      document.getElementById('bs_table_body').innerHTML = bsHtml;
     }
 
     function initApp() {
