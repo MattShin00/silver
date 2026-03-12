@@ -479,17 +479,17 @@
         
         <div class="input-group">
           <div class="input-label"><span>원재료(4N) 매입가격 (KRW/kg)</span></div>
-          <input type="number" class="input-control" id="raw_material_price" value="1200000" step="10000">
+          <input type="text" class="input-control comma-format" id="raw_material_price" value="1,200,000">
         </div>
 
         <div class="input-group">
           <div class="input-label"><span>제품(5N, 6N) 판매가격 (KRW/kg)</span></div>
-          <input type="number" class="input-control" id="product_selling_price" value="1440000" step="10000">
+          <input type="text" class="input-control comma-format" id="product_selling_price" value="1,440,000">
         </div>
 
         <div class="input-group">
           <div class="input-label"><span>살균수(부산물) 단가 (KRW/L)</span></div>
-          <input type="number" class="input-control" id="byproduct_price" value="50000" step="5000">
+          <input type="text" class="input-control comma-format" id="byproduct_price" value="50,000">
         </div>
 
         <div class="input-group" style="margin-top:10px;">
@@ -500,12 +500,12 @@
               <option value="amount">직접 입력(KRW/kg)</option>
             </select>
           </div>
-          <input type="number" class="input-control" id="utility_cost_value" value="5" step="1">
+          <input type="text" class="input-control comma-format" id="utility_cost_value" value="5">
           <div style="font-size:0.7rem; color:var(--text-muted); margin-top:4px;">* 신규 및 재투입량 전량에 적용 (질산, 전기 등)</div>
         </div>
         <div class="input-group" style="margin-top:10px;">
           <div class="input-label"><span>월 판매 목표량 (kg)</span></div>
-          <input type="number" class="input-control" id="target_sales_qty" value="150" step="10">
+          <input type="text" class="input-control comma-format" id="target_sales_qty" value="150">
           <div style="font-size:0.7rem; color:var(--text-muted); margin-top:4px;">* 생산량 초과 시 외부매입 (판매가의 80%) 진행</div>
         </div>
       </div>
@@ -593,31 +593,31 @@
         <div class="finance-row">
           <div class="input-group">
             <div class="input-label"><span>초기 자본금(KRW)</span></div>
-            <input type="number" class="input-control fin-input" id="fin_initial_capital" value="1000000000" step="10000000">
+            <input type="text" class="input-control fin-input comma-format" id="fin_initial_capital" value="1,000,000,000">
           </div>
           <div class="input-group">
             <div class="input-label"><span>차입금 (Debt, KRW)</span></div>
-            <input type="number" class="input-control fin-input" id="fin_debt" value="500000000" step="10000000">
+            <input type="text" class="input-control fin-input comma-format" id="fin_debt" value="500,000,000">
           </div>
           <div class="input-group">
             <div class="input-label"><span>연 이자율 (%)</span></div>
-            <input type="number" class="input-control fin-input" id="fin_interest_rate" value="5.0" step="0.1">
+            <input type="text" class="input-control fin-input comma-format" id="fin_interest_rate" value="5.0">
           </div>
           <div class="input-group">
             <div class="input-label"><span>설비 투자(CAPEX, KRW)</span></div>
-            <input type="number" class="input-control fin-input" id="fin_capex" value="800000000" step="10000000">
+            <input type="text" class="input-control fin-input comma-format" id="fin_capex" value="800,000,000">
           </div>
           <div class="input-group">
             <div class="input-label"><span>감가상각 내용연수 (년)</span></div>
-            <input type="number" class="input-control fin-input" id="fin_useful_life" value="5" step="1">
+            <input type="text" class="input-control fin-input comma-format" id="fin_useful_life" value="5">
           </div>
           <div class="input-group">
             <div class="input-label"><span>기타 판관비(SG&A, 월, KRW)</span></div>
-            <input type="number" class="input-control fin-input" id="fin_sga" value="20000000" step="1000000">
+            <input type="text" class="input-control fin-input comma-format" id="fin_sga" value="20,000,000">
           </div>
           <div class="input-group">
             <div class="input-label"><span>법인세율 (%)</span></div>
-            <input type="number" class="input-control fin-input" id="fin_tax_rate" value="20.0" step="1">
+            <input type="text" class="input-control fin-input comma-format" id="fin_tax_rate" value="20.0">
           </div>
         </div>
       </div>
@@ -694,6 +694,22 @@
       bindSlider('main_product_yield', 'val_main_yield', '%');
       bindSlider('solution_loss_rate', 'val_loss_rate', '%');
 
+      // Add comma formatting event listeners
+      document.querySelectorAll('.comma-format').forEach(el => {
+        el.addEventListener('input', function(e) {
+          // Allow leading negative sign, decimal point, and numbers
+          let parts = e.target.value.replace(/[^0-9.\-]/g, '').split('.');
+          if (parts[0].length > 0) {
+            // Re-apply comma format to the integer part
+            let val = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+            if (parts.length > 1) {
+              val += '.' + parts[1]; // Restore decimals if any
+            }
+            e.target.value = val;
+          }
+        });
+      });
+
       const numberInputs = ['raw_material_price', 'product_selling_price', 'byproduct_price', 'utility_cost_value', 'target_sales_qty'];
       numberInputs.forEach(id => {
         const el = document.getElementById(id);
@@ -736,30 +752,36 @@
     // ----------------------------------------------------
     // Simulation Core Logic
     // ----------------------------------------------------
+    // Helper to safely parse numbers with commas
+    function parseInput(id) {
+      const val = document.getElementById(id).value.replace(/,/g, '');
+      return parseFloat(val) || 0;
+    }
+
     function getInputs() {
       const y = parseFloat(document.getElementById('main_product_yield').value) / 100;
       const l = parseFloat(document.getElementById('solution_loss_rate').value) / 100;
       
       return {
-        inputQty: parseFloat(document.getElementById('initial_input_qty').value),
+        inputQty: parseInput('initial_input_qty'),
         yieldMain: y,
         yieldLoss: l,
         yieldReinput: Math.max(0, 1 - y),
-        priceRaw: parseFloat(document.getElementById('raw_material_price').value),
-        priceProduct: parseFloat(document.getElementById('product_selling_price').value),
-        priceByprod: parseFloat(document.getElementById('byproduct_price').value),
+        priceRaw: parseInput('raw_material_price'),
+        priceProduct: parseInput('product_selling_price'),
+        priceByprod: parseInput('byproduct_price'),
         utilityCostType: document.getElementById('utility_cost_type').value,
-        utilityCostValue: parseFloat(document.getElementById('utility_cost_value').value),
-        targetSales: parseFloat(document.getElementById('target_sales_qty').value),
+        utilityCostValue: parseInput('utility_cost_value'),
+        targetSales: parseInput('target_sales_qty'),
         
         // Financial Inputs
-        finInitialCapital: parseFloat(document.getElementById('fin_initial_capital').value),
-        finDebt: parseFloat(document.getElementById('fin_debt').value),
-        finInterestRate: parseFloat(document.getElementById('fin_interest_rate').value) / 100,
-        finCapex: parseFloat(document.getElementById('fin_capex').value),
-        finUsefulLife: parseFloat(document.getElementById('fin_useful_life').value),
-        finSga: parseFloat(document.getElementById('fin_sga').value),
-        finTaxRate: parseFloat(document.getElementById('fin_tax_rate').value) / 100
+        finInitialCapital: parseInput('fin_initial_capital'),
+        finDebt: parseInput('fin_debt'),
+        finInterestRate: parseInput('fin_interest_rate') / 100,
+        finCapex: parseInput('fin_capex'),
+        finUsefulLife: parseInput('fin_useful_life'),
+        finSga: parseInput('fin_sga'),
+        finTaxRate: parseInput('fin_tax_rate') / 100
       };
     }
 
